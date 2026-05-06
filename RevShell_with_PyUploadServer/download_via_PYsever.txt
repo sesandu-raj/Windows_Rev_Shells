@@ -1,2 +1,2 @@
 $wc = New-Object System.Net.WebClient
-$wc.UploadFile('http://192.168.150.2:8000/', 'C:\Users\sesan\Downloads\1d8f04de-0a8b-43e9-846e-1bb282709326.png')
+$wc.UploadFile('http://192.168.150.2:8000/', 'C:\Users\sesan\Downloads\b500dc5e-1eb1-4cac-9f7f-6578d3218ac8.png')
